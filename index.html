@@ -270,19 +270,19 @@
     };
 
     async function pushLiveQuestion(roomId, item){
-const q = (item && item.q) ? item.q : $("questionText").value.trim();
-const a = (item && item.a) ? item.a : [$("a1").value, $("a2").value, $("a3").value, $("a4").value].map(x=>x||'');
-const correct = (item && typeof item.correct !== 'undefined') ? item.correct : parseInt($("correct").value,10);
-const duration = Number((item && item.duration != null) ? item.duration : ($("duration").value || 20));
-const ptsRight = Number((item && item.ptsRight != null) ? item.ptsRight : ($("ptsRight").value || 10));
-const ptsWrong = Number((item && item.ptsWrong != null) ? item.ptsWrong : ($("ptsWrong").value || 0));
-const bonusTopN = Number((item && item.bonusTopN != null) ? item.bonusTopN : ($("bonusTopN").value || 0));
-const bonusPts = Number((item && item.bonusPts != null) ? item.bonusPts : ($("bonusPts").value || 0));
-if(!q || a.filter(Boolean).length < 2) return alert("Nhập câu hỏi và tối thiểu 2 đáp án");
-const ts = Date.now();
-await update(ref(db, `rooms/${roomId}/live`), { q, a, correct, reveal:false, ts, duration, tsEnd: ts + duration*1000, ptsRight, ptsWrong, bonusTopN, bonusPts });
-await remove(ref(db, `rooms/${roomId}/answers`));
-}
+      const q = (item && item.q) ? item.q : $("questionText").value.trim();
+      const a = (item && item.a) ? item.a : [$("a1").value, $("a2").value, $("a3").value, $("a4").value].map(x=>x||'');
+      const correct = (item && typeof item.correct !== 'undefined') ? item.correct : parseInt($("correct").value,10);
+      const duration = Number((item && item.duration != null) ? item.duration : ($("duration").value || 20));
+      const ptsRight = Number((item && item.ptsRight != null) ? item.ptsRight : ($("ptsRight").value || 10));
+      const ptsWrong = Number((item && item.ptsWrong != null) ? item.ptsWrong : ($("ptsWrong").value || 0));
+      const bonusTopN = Number((item && item.bonusTopN != null) ? item.bonusTopN : ($("bonusTopN").value || 0));
+      const bonusPts = Number((item && item.bonusPts != null) ? item.bonusPts : ($("bonusPts").value || 0));
+      if(!q || a.filter(Boolean).length < 2) return alert("Nhập câu hỏi và tối thiểu 2 đáp án");
+      const ts = Date.now();
+      await update(ref(db, `rooms/${roomId}/live`), { q, a, correct, reveal:false, ts, duration, tsEnd: ts + duration*1000, ptsRight, ptsWrong, bonusTopN, bonusPts });
+      await remove(ref(db, `rooms/${roomId}/answers`));
+    }
 
     async function revealAndScore(roomId){
       const live = (await get(ref(db, `rooms/${roomId}/live`))).val();
@@ -384,7 +384,7 @@ await remove(ref(db, `rooms/${roomId}/answers`));
       const rows = [['name','score']];
       Object.values(scores).forEach(s=> rows.push([s.name, s.score||0]));
       const csv = rows.map(r => r.map(x => `"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
-      const blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8;'});
+      const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8;'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = `scoreboard_${Date.now()}.csv`; a.click(); URL.revokeObjectURL(url);
     }
@@ -432,32 +432,164 @@ await remove(ref(db, `rooms/${roomId}/answers`));
     window.addEventListener('beforeunload', (e)=>{ if(joinedRoomId && myPlayerId){ update(ref(db, `rooms/${joinedRoomId}/players/${myPlayerId}`), { leftAt: Date.now() }); } });
   </script>
 
-  <!--
-  ===========================
-  HƯỚNG DẪN TRIỂN KHAI (Firebase + Vercel)
-  ===========================
-  1) Tạo dự án Firebase → Realtime Database (location: asia-southeast1 càng tốt nếu VN)
-  2) Vào "Project settings" → "General" → "Your apps" → Web app → copy config và dán vào biến firebaseConfig ở trên
-  3) Realtime Database → Rules (tạm thời cho lớp học) đặt:
-     {
-       "rules": {
-         ".read": true,
-         ".write": true
-       }
-     }
-     (Sau buổi học, hãy siết rule chỉ cho phép ghi theo room hoặc auth.)
+ 
+  <!-- ================= MEMORY (FLIP CARDS) MODE UI ================= -->
+  <div class="wrap" style="padding-top:0">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <strong>🎴 Chế độ Lật thẻ (Memory) – Beta</strong>
+        <span class="muted">Tạo từ CSV cặp <code>question,answer</code>. Cả lớp cùng lật; đúng thì biến mất, sai sẽ úp lại.</span>
+      </div>
+      <div class="hr"></div>
+      <div class="row">
+        <input id="memRoom" placeholder="Mã phòng (dùng chung với phòng quiz cũng được)"/>
+        <button id="memEnter">Vào phòng Memory (Host)</button>
+        <input type="file" id="memFile" accept=".csv,.json"/>
+        <button class="ghost" id="memLoad">Tải cặp Q/A</button>
+        <button id="memStart">Bắt đầu ván</button>
+        <label>Điểm mỗi cặp:</label><input id="memPts" type="number" value="5"/>
+        <label>Kích thước lưới:</label><input id="memCols" type="number" value="4" min="2" max="8"/>
+      </div>
+      <div id="memQueue" class="list"></div>
+    </div>
 
-  4) Deploy Vercel:
-     - Tạo repo Git hoặc kéo-thả file index.html này lên https://vercel.com/new → chọn "Other" (Static)
-     - Sau deploy, URL công khai sẽ ở dạng https://ten-du-an.vercel.app
-     - Host bấm "Tạo / Vào phòng" (ví dụ: ECO101) → bấm "Sao chép link phòng" gửi cho lớp
-     - Người chơi mở link, nhập tên, tham gia và chơi ngay
+    <div class="card">
+      <strong>Người chơi – Lật thẻ</strong>
+      <div class="hr"></div>
+      <div class="row">
+        <input id="memJoinRoom" placeholder="Mã phòng"/>
+        <input id="memNick" placeholder="Tên của bạn"/>
+        <button id="memJoin">Tham gia Memory</button>
+      </div>
+      <div class="space"></div>
+      <div id="memArea" style="display:none">
+        <div class="row" style="justify-content:space-between">
+          <span class="pill">Phòng: <span id="memBadge">-</span></span>
+          <span class="pill">Bạn: <span id="memMe">-</span></span>
+          <span class="pill">Còn cặp: <span id="memLeft">--</span></span>
+        </div>
+        <div class="hr"></div>
+        <div id="memBoard" style="display:grid;gap:10px"></div>
+        <div class="center muted" id="memHint"></div>
+      </div>
+    </div>
+  </div>
 
-  MẸO DẠY HỌC:
-  - Có đồng hồ đếm ngược tự khoá trả lời khi hết giờ.
-  - Nạp câu hỏi từ CSV/JSON (header CSV: question,a,b,c,d,correct,duration,ptsRight,ptsWrong,bonusTopN,bonusPts)
-  - Điểm linh hoạt: đúng/sai/bonus nhanh tay.
-  - Nút "Xuất bảng điểm CSV" để tải file kết quả sau buổi.
-  -->
+  <script type="module">
+    import { getDatabase, ref, set, onValue, update, get, remove } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+    const db2 = getDatabase();
+    const $$ = (id)=>document.getElementById(id);
+
+    // ---------- HOST: load Q/A pairs & start round ----------
+    $$("memLoad").onclick = ()=> $$("memFile").click();
+    $$("memEnter").onclick = async ()=>{
+      const room = $$("memRoom").value.trim().toUpperCase();
+      if(!room) return alert('Nhập mã phòng');
+      await update(ref(db2, `rooms/${room}/memory`), { ready:true });
+      alert('Đã vào phòng Memory: '+room);
+    };
+    $$("memFile").onchange = async (e)=>{
+      const f = e.target.files[0]; if(!f) return;
+      const text = await f.text();
+      let pairs = [];
+      if(f.name.endsWith('.json')){
+        const j = JSON.parse(text); pairs = Array.isArray(j)?j:(j.pairs||[]);
+      }else{
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        const start = lines[0].toLowerCase().includes('question')?1:0;
+        for(let i=start;i<lines.length;i++){
+          const [q,a] = lines[i].split(','); if(q && a) pairs.push({q, a});
+        }
+      }
+      renderMemQueue(pairs);
+    };
+
+    function renderMemQueue(pairs){
+      const box=$$("memQueue"); box.innerHTML='';
+      if(!pairs.length){ box.innerHTML='<div class="muted">(Chưa có cặp Q/A)</div>'; return; }
+      box.innerHTML = `<div class="q">Đã nạp <strong>${pairs.length}</strong> cặp. Bấm "Bắt đầu ván" để tạo bàn.</div>`;
+      $$("memStart").onclick = async ()=>{
+        const room = $$("memRoom").value.trim().toUpperCase(); if(!room) return alert('Nhập mã phòng');
+        const cols = Math.max(2, Math.min(8, Number($$("memCols").value||4)));
+        const pts = Number($$("memPts").value||5);
+        const deck=[]; let id=0;
+        pairs.forEach((p,idx)=>{
+          deck.push({id:id++, pair:idx, text:p.q});
+          deck.push({id:id++, pair:idx, text:p.a});
+        });
+        // xáo bài
+        for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; }
+        const state={ cols, pts, deck: deck.map(c=>({id:c.id, pair:c.pair, text:c.text, removed:false})), flipped:[], lock:false };
+        await update(ref(db2, `rooms/${room}/memory/state`), state);
+        await update(ref(db2, `rooms/${room}/memory/meta`), { left: pairs.length });
+        alert('Đã tạo bàn '+deck.length+' thẻ');
+      };
+    }
+
+    // ---------- PLAYER: join & play ----------
+    let memRoom=null, memPlayer=null;
+    $$("memJoin").onclick = async ()=>{
+      const r=$$("memJoinRoom").value.trim().toUpperCase();
+      const n=$$("memNick").value.trim();
+      if(!r||!n) return alert('Nhập mã phòng & tên');
+      memRoom=r; memPlayer='m_'+Math.random().toString(36).slice(2,8);
+      await update(ref(db2, `rooms/${r}/players/${memPlayer}`), {name:n, score:0});
+      $$("memArea").style.display='block'; $$("memBadge").textContent=r; $$("memMe").textContent=n;
+      bindMemBoard();
+    };
+
+    function bindMemBoard(){
+      onValue(ref(db2, `rooms/${memRoom}/memory/state`), async (snap)=>{
+        const st = snap.val(); if(!st){ $$("memBoard").innerHTML='<div class="muted">Chờ host bắt đầu ván…</div>'; return; }
+        const board=$$("memBoard"); board.style.gridTemplateColumns=`repeat(${st.cols||4}, minmax(0,1fr))`;
+        board.innerHTML='';
+        const metaSnap = await get(ref(db2, `rooms/${memRoom}/memory/meta`));
+        const meta = metaSnap.val()||{left:'--'}; $$("memLeft").textContent=meta.left;
+        st.deck.forEach((card, idx)=>{
+          const btn=document.createElement('button'); btn.className='ans'; btn.style.height='72px';
+          btn.disabled=card.removed || st.lock;
+          const flipped = (st.flipped||[]).includes(card.id);
+          btn.textContent = (flipped || card.removed) ? card.text : '❓';
+          if(card.removed){ btn.style.visibility='hidden'; }
+          btn.onclick = ()=> flipCard(card.id);
+          board.appendChild(btn);
+        });
+        $$("memHint").textContent = st.lock? 'Đang kiểm tra cặp…' : 'Chọn 2 thẻ để lật';
+      });
+    }
+
+    async function flipCard(cardId){
+      const base = ref(db2, `rooms/${memRoom}/memory/state`);
+      const st = (await get(base)).val(); if(!st || st.lock) return;
+      const card = st.deck.find(c=>c.id===cardId); if(!card || card.removed) return;
+      if((st.flipped||[]).includes(cardId)) return; // đã lật
+      const flipped = [...(st.flipped||[]), cardId];
+      await update(base, { flipped });
+      if(flipped.length===2){
+        // tạm khoá để kiểm tra
+        await update(base, { lock:true });
+        const [c1,c2] = flipped.map(id=> st.deck.find(c=>c.id===id));
+        const match = c1.pair===c2.pair && c1.id!==c2.id;
+        if(match){
+          st.deck = st.deck.map(c=> (c.id===c1.id||c.id===c2.id)? {...c, removed:true}:c);
+          await update(base, { deck: st.deck, flipped: [], lock:false });
+          // trừ cặp còn lại
+          const metaRef = ref(db2, `rooms/${memRoom}/memory/meta`);
+          const m = (await get(metaRef)).val()||{left:0};
+          await update(metaRef, { left: Math.max(0,(m.left||0)-1) });
+          // cộng điểm cho người lật thứ 2
+          const roomScoresRef = ref(db2, `rooms/${memRoom}/scores/${memPlayer}`);
+          const p = (await get(roomScoresRef)).val()||{name:'',score:0};
+          const pts = (st.pts||5);
+          await update(roomScoresRef, { name: (p.name||$$("memMe").textContent), score: (p.score||0)+pts });
+          await update(ref(db2, `rooms/${memRoom}/players/${memPlayer}`), { score: (p.score||0)+pts });
+        }else{
+          // sai: úp lại sau 1s
+          setTimeout(async ()=>{ await update(base, { flipped: [], lock:false }); }, 1000);
+        }
+      }
+    }
+  </script>
+
 </body>
 </html>
