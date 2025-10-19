@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuizRoom – Chơi quiz theo phòng</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#0b1020; --card:#121936; --muted:#7e88c6; --accent:#7aa2ff; --good:#19c37d; --bad:#ff5e5e; }
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(1000px 600px at 10% 10%, #18214d 0%, #0b1020 60%);color:#fff}
+    .wrap{max-width:1100px;margin:0 auto;padding:28px}
+    h1{font-size:28px;margin:0 0 8px}
+    .sub{color:var(--muted);margin:0 0 24px}
+    .grid{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:900px){.grid{grid-template-columns:1.2fr .8fr}}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .row{display:flex;gap:12px;align-items:center}
+    input, textarea, select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:#0f1530;color:#fff}
+    button{cursor:pointer;border:0;background:var(--accent);color:#081126;padding:12px 16px;border-radius:12px;font-weight:700}
+    button.ghost{background:transparent;color:#cfe0ff;border:1px solid rgba(255,255,255,.18)}
+    .muted{color:var(--muted)} .pill{background:#0e1533;border:1px solid rgba(255,255,255,.14);padding:6px 10px;border-radius:999px;color:#cfe0ff;font-weight:600;display:inline-flex;gap:8px;align-items:center}
+    .list{display:grid;gap:10px}
+    .q{background:#0f1738;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px}
+    .answers{display:grid;gap:10px;margin-top:10px}
+    .ans{background:#0c1330;border:1px solid rgba(255,255,255,.08);padding:12px;border-radius:10px}
+    .ans.correct{border-color: rgba(25,195,125,.8); outline:2px solid rgba(25,195,125,.25)}
+    .ans.wrong{border-color: rgba(255,94,94,.8); outline:2px solid rgba(255,94,94,.18)}
+    .flex{display:flex;gap:10px;align-items:center}
+    .space{height:10px}
+    .center{text-align:center}
+    .score{font-weight:800}
+    .footer{margin-top:24px;color:#98a7ff80;font-size:12px}
+    .badge{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:#0b132e;}
+    .players{display:flex;flex-wrap:wrap;gap:8px}
+    .player{background:#0e1737;border:1px solid rgba(255,255,255,.1);padding:8px 10px;border-radius:999px}
+    .danger{background:var(--bad);color:#220b0b}
+    .good{background:var(--good);color:#05160f}
+    .hr{height:1px;background:rgba(255,255,255,.08);margin:14px 0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>QuizRoom 🎯</h1>
+    <p class="sub">Tạo phòng – Mời bạn bè – Chơi quiz theo thời gian thực (Firebase). Triển khai dễ dàng trên Vercel.</p>
+
+    <div class="grid">
+      <!-- HOST / CONTROL PANEL -->
+      <div class="card" id="hostPanel">
+        <div class="row" style="justify-content:space-between">
+          <strong>Bảng điều khiển (Host)</strong>
+          <span class="pill">Trạng thái: <span id="status">Chưa kết nối</span></span>
+        </div>
+        <div class="hr"></div>
+        <div class="row">
+          <input id="roomId" placeholder="Nhập mã phòng (ví dụ: ECO101)" />
+          <button id="createRoomBtn">Tạo / Vào phòng</button>
+          <button class="ghost" id="copyLinkBtn">Sao chép link phòng</button>
+        </div>
+        <div class="space"></div>
+
+        <div class="row">
+          <textarea id="questionText" rows="3" placeholder="Nhập câu hỏi…"></textarea>
+        </div>
+        <div class="row">
+          <div style="flex:1"><input id="a1" placeholder="Đáp án A"/></div>
+          <div style="flex:1"><input id="a2" placeholder="Đáp án B"/></div>
+          <div style="flex:1"><input id="a3" placeholder="Đáp án C"/></div>
+          <div style="flex:1"><input id="a4" placeholder="Đáp án D"/></div>
+          <div style="width:160px">
+            <select id="correct">
+              <option value="0">Đáp án đúng: A</option>
+              <option value="1">Đáp án đúng: B</option>
+              <option value="2">Đáp án đúng: C</option>
+              <option value="3">Đáp án đúng: D</option>
+            </select>
+          </div>
+        </div>
+        <div class="space"></div>
+        <div class="row">
+          <button id="pushQuestion">Gửi câu hỏi cho phòng</button>
+          <button class="ghost" id="revealBtn">Hiện kết quả</button>
+          <button class="ghost danger" id="resetAnswers">Xoá câu trả lời</button>
+        </div>
+
+        <div class="hr"></div>
+        <div>
+          <div class="row"><strong>Người chơi trong phòng</strong> <span class="badge" id="playerCount">0</span></div>
+          <div class="players" id="players"></div>
+        </div>
+
+        <div class="hr"></div>
+        <div>
+          <div class="row"><strong>Bảng điểm</strong></div>
+          <div id="scoreboard" class="list"></div>
+        </div>
+      </div>
+
+      <!-- PLAYER / JOIN PANEL -->
+      <div class="card">
+        <strong>Tham gia chơi (Player)</strong>
+        <div class="hr"></div>
+        <div class="row">
+          <input id="joinRoom" placeholder="Mã phòng" />
+          <input id="nickname" placeholder="Tên của bạn" />
+          <button id="joinBtn">Tham gia</button>
+        </div>
+        <div class="space"></div>
+        <div id="playerArea" style="display:none">
+          <div class="row" style="justify-content:space-between">
+            <span class="pill">Phòng: <span id="roomBadge">-</span></span>
+            <span class="pill">Bạn: <span id="me">-</span></span>
+          </div>
+          <div class="hr"></div>
+          <div id="liveQuestion" class="q">Chờ host gửi câu hỏi…</div>
+          <div class="answers" id="answerBtns" style="display:none"></div>
+          <div class="center muted" id="hint"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">🔥 Hướng dẫn cấu hình Firebase nằm cuối file. Mã nguồn: 1 file HTML duy nhất – kéo thả lên Vercel là chạy.</div>
+  </div>
+
+  <!-- Firebase v9 (CDN) -->
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+    import { getDatabase, ref, set, onValue, update, push, get, child, remove } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+
+    // =====================
+    // 1) CẤU HÌNH FIREBASE
+    // =====================
+    // TODO: THAY các giá trị dưới đây bằng dự án Firebase của bạn
+    const firebaseConfig = {
+  apiKey: "AIzaSyDA3fp5A2cGB63kMA8TlEJ2x49rr4DiYbA",
+  authDomain: "game-75e2a.firebaseapp.com",
+  databaseURL: "https://game-75e2a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "game-75e2a",
+  storageBucket: "game-75e2a.firebasestorage.app",
+  messagingSenderId: "763894782961",
+  appId: "1:763894782961:web:84465068beb77de8024250",
+  measurementId: "G-E10MQ37X5Y"
+};
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Helpers
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $("status");
+    const playersEl = $("players");
+    const scoreboardEl = $("scoreboard");
+
+    let myPlayerId = null;
+    let joinedRoomId = null;
+
+    // =====================
+    // 2) HOST: Tạo/Vào phòng
+    // =====================
+    $("createRoomBtn").onclick = async () => {
+      const roomId = $("roomId").value.trim().toUpperCase();
+      if(!roomId) return alert("Nhập mã phòng");
+      const base = ref(db, `rooms/${roomId}`);
+      const now = Date.now();
+      // Tạo phòng nếu chưa có
+      await update(base, { createdAt: now });
+      statusEl.textContent = `Đã vào phòng ${roomId}`;
+      // Lắng nghe danh sách người chơi
+      onValue(ref(db, `rooms/${roomId}/players`), (snap) => {
+        const players = snap.val() || {};
+        playersEl.innerHTML = '';
+        const ids = Object.keys(players);
+        $("playerCount").textContent = ids.length;
+        ids.forEach(id => {
+          const p = players[id];
+          const chip = document.createElement('div');
+          chip.className = 'player';
+          chip.textContent = `${p.name} • ${p.score||0}`;
+          playersEl.appendChild(chip);
+        })
+      });
+      // Lắng nghe bảng điểm
+      onValue(ref(db, `rooms/${roomId}/scores`), (snap) => {
+        const scores = snap.val() || {};
+        const arr = Object.values(scores).sort((a,b)=> (b.score||0)-(a.score||0));
+        scoreboardEl.innerHTML = '';
+        arr.forEach((s, idx) => {
+          const item = document.createElement('div');
+          item.className='q';
+          item.innerHTML = `<div class="row" style="justify-content:space-between"><div><strong>${idx+1}. ${s.name}</strong></div><div class="score">${s.score||0} điểm</div></div>`;
+          scoreboardEl.appendChild(item);
+        })
+      });
+
+      // Copy link join
+      $("copyLinkBtn").onclick = async () => {
+        const url = `${location.origin}${location.pathname}?room=${roomId}`;
+        await navigator.clipboard.writeText(url);
+        alert("Đã sao chép link: " + url);
+      }
+
+      // Gửi câu hỏi tới phòng
+      $("pushQuestion").onclick = async () => {
+        const q = $("questionText").value.trim();
+        const a = [$("a1").value, $("a2").value, $("a3").value, $("a4").value].map(x=>x||'');
+        const correct = parseInt($("correct").value,10);
+        if(!q || a.filter(Boolean).length < 2) return alert("Nhập câu hỏi và tối thiểu 2 đáp án");
+        await update(ref(db, `rooms/${roomId}/live`), { q, a, correct, reveal:false, ts: Date.now() });
+        // Reset lượt trả lời cũ
+        await remove(ref(db, `rooms/${roomId}/answers`));
+      }
+      // Hiện kết quả
+      $("revealBtn").onclick = async () => {
+        await update(ref(db, `rooms/${roomId}/live`), { reveal: true });
+        // chấm điểm: ai trả lời đúng +10
+        const ansSnap = await get(ref(db, `rooms/${roomId}/answers`));
+        const answers = ansSnap.val() || {};
+        const live = (await get(ref(db, `rooms/${roomId}/live`))).val();
+        Object.keys(answers).forEach(async pid => {
+          const isCorrect = answers[pid].choice === live.correct;
+          const delta = isCorrect ? 10 : 0;
+          const p = (await get(ref(db, `rooms/${roomId}/players/${pid}`))).val();
+          const newScore = (p?.score||0) + delta;
+          await update(ref(db, `rooms/${roomId}/players/${pid}`), { score: newScore });
+          await update(ref(db, `rooms/${roomId}/scores/${pid}`), { name:p.name, score:newScore });
+        });
+      }
+      // Xoá câu trả lời
+      $("resetAnswers").onclick = async () => {
+        await remove(ref(db, `rooms/${roomId}/answers`));
+      }
+    };
+
+    // =====================
+    // 3) PLAYER: Tham gia & trả lời
+    // =====================
+    function useQueryParam(name){
+      const url = new URL(location.href); return url.searchParams.get(name);
+    }
+    const roomFromUrl = useQueryParam('room');
+    if(roomFromUrl){ $("joinRoom").value = roomFromUrl; }
+
+    $("joinBtn").onclick = async () => {
+      const roomId = $("joinRoom").value.trim().toUpperCase();
+      const name = $("nickname").value.trim();
+      if(!roomId || !name) return alert("Nhập mã phòng và tên");
+      joinedRoomId = roomId;
+      const base = ref(db, `rooms/${roomId}`);
+
+      // Tạo player id dựa theo random + thời gian
+      myPlayerId = 'p_'+Math.random().toString(36).slice(2,8);
+      await update(ref(db, `rooms/${roomId}/players/${myPlayerId}`), { name, score:0, joinedAt: Date.now() });
+      await update(ref(db, `rooms/${roomId}/scores/${myPlayerId}`), { name, score:0 });
+
+      // UI state
+      $("playerArea").style.display='block';
+      $("roomBadge").textContent = roomId;
+      $("me").textContent = name;
+
+      // Lắng nghe câu hỏi trực tiếp
+      onValue(ref(db, `rooms/${roomId}/live`), (snap) => {
+        const live = snap.val();
+        const liveQ = $("liveQuestion");
+        const ansBox = $("answerBtns");
+        const hint = $("hint");
+        if(!live){
+          liveQ.textContent = 'Chờ host gửi câu hỏi…';
+          ansBox.style.display='none';
+          hint.textContent = '';
+          return;
+        }
+        liveQ.innerHTML = `<strong>Câu hỏi:</strong> ${live.q}`;
+        ansBox.innerHTML='';
+        (live.a||[]).forEach((text, idx)=>{
+          const btn = document.createElement('button');
+          btn.className='ans';
+          btn.textContent = `${String.fromCharCode(65+idx)}. ${text}`;
+          btn.onclick = async () => {
+            // chỉ cho trả lời 1 lần / câu
+            const already = await get(ref(db, `rooms/${roomId}/answers/${myPlayerId}`));
+            if(already.exists()){ hint.textContent = 'Bạn đã trả lời. Chờ công bố kết quả…'; return; }
+            await update(ref(db, `rooms/${roomId}/answers/${myPlayerId}`), { choice: idx, at: Date.now(), name });
+            hint.textContent = 'Đã ghi nhận câu trả lời!';
+          };
+          ansBox.appendChild(btn);
+        });
+        ansBox.style.display='grid';
+        hint.textContent = 'Chọn đáp án của bạn.';
+
+        // Khi host bấm hiện kết quả => tô màu đúng/sai
+        if(live.reveal){
+          Array.from(ansBox.children).forEach((el, idx)=>{
+            el.classList.remove('correct','wrong');
+            if(idx===live.correct) el.classList.add('correct'); else el.classList.add('wrong');
+          });
+          hint.textContent = 'Kết quả đã công bố!';
+        }
+      });
+
+      alert(`Đã tham gia phòng ${roomId}. Hãy chờ host!`);
+    };
+
+    // Cảnh báo rời trang
+    window.addEventListener('beforeunload', (e)=>{ if(joinedRoomId && myPlayerId){ update(ref(db, `rooms/${joinedRoomId}/players/${myPlayerId}`), { leftAt: Date.now() }); } });
+  </script>
+
+  <!--
+  ===========================
+  HƯỚNG DẪN TRIỂN KHAI (Firebase + Vercel)
+  ===========================
+  1) Tạo dự án Firebase → Realtime Database (location: asia-southeast1 càng tốt nếu VN)
+  2) Vào "Project settings" → "General" → "Your apps" → Web app → copy config và dán vào biến firebaseConfig ở trên
+  3) Realtime Database → Rules (tạm thời cho lớp học) đặt:
+     {
+       "rules": {
+         ".read": true,
+         ".write": true
+       }
+     }
+     (Sau buổi học, hãy siết rule chỉ cho phép ghi theo room hoặc auth.)
+
+  4) Deploy Vercel:
+     - Tạo repo Git hoặc kéo-thả file index.html này lên https://vercel.com/new → chọn "Other" (Static)
+     - Sau deploy, URL công khai sẽ ở dạng https://ten-du-an.vercel.app
+     - Host bấm "Tạo / Vào phòng" (ví dụ: ECO101) → bấm "Sao chép link phòng" gửi cho lớp
+     - Người chơi mở link, nhập tên, tham gia và chơi ngay
+
+  MẸO DẠY HỌC:
+  - Cộng điểm mỗi câu đúng +10 (đang mặc định). Bạn có thể sửa trong hàm revealBtn.
+  - Chuẩn bị sẵn danh sách câu hỏi: chỉ cần dán nhanh vào các ô và bấm Gửi.
+  - Dùng máy chiếu mở bảng điều khiển (hostPanel); học viên dùng điện thoại để trả lời.
+  - Sau buổi, đổi Rules của DB về chế độ an toàn hoặc xoá dữ liệu rooms/…
+  -->
+</body>
+</html>
