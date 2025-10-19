@@ -3,120 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QuizRoom – Chơi quiz theo phòng</title>
+  <title>MemoryRoom – Lật thẻ theo phòng (Realtime)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    :root { --bg:#0b1020; --card:#121936; --muted:#7e88c6; --accent:#7aa2ff; --good:#19c37d; --bad:#ff5e5e; }
+    :root { --bg:#0b1020; --card:#121936; --muted:#98a7ff99; --accent:#7aa2ff; --good:#19c37d; --bad:#ff5e5e; }
     *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:radial-gradient(1000px 600px at 10% 10%, #18214d 0%, #0b1020 60%);color:#fff}
-    .wrap{max-width:1200px;margin:0 auto;padding:28px}
-    h1{font-size:28px;margin:0 0 8px;display:flex;align-items:center;gap:12px}
+    .wrap{max-width:1100px;margin:0 auto;padding:28px}
+    h1{font-size:28px;margin:0 0 8px;display:flex;align-items:center;gap:10px}
     .logo{width:36px;height:36px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,255,255,.25)}
     .sub{color:var(--muted);margin:0 0 24px}
     .grid{display:grid;grid-template-columns:1fr;gap:16px}
     @media(min-width:980px){.grid{grid-template-columns:1.2fr .8fr}}
     .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
     .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    input, textarea, select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:#0f1530;color:#fff}
-    input[type="number"]{max-width:120px}
+    input, select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:#0f1530;color:#fff}
+    input[type="number"], input[type="color"]{max-width:120px}
     button{cursor:pointer;border:0;background:var(--accent);color:#081126;padding:12px 16px;border-radius:12px;font-weight:700}
     button.ghost{background:transparent;color:#cfe0ff;border:1px solid rgba(255,255,255,.18)}
     .muted{color:var(--muted)} .pill{background:#0e1533;border:1px solid rgba(255,255,255,.14);padding:6px 10px;border-radius:999px;color:#cfe0ff;font-weight:600;display:inline-flex;gap:8px;align-items:center}
     .list{display:grid;gap:10px}
     .q{background:#0f1738;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px}
-    .answers{display:grid;gap:10px;margin-top:10px}
     .ans{background:#0c1330;border:1px solid rgba(255,255,255,.08);padding:12px;border-radius:10px}
-    .ans.correct{border-color: rgba(25,195,125,.8); outline:2px solid rgba(25,195,125,.25)}
-    .ans.wrong{border-color: rgba(255,94,94,.8); outline:2px solid rgba(255,94,94,.18)}
-    .flex{display:flex;gap:10px;align-items:center}
-    .space{height:10px}
-    .center{text-align:center}
-    .score{font-weight:800}
-    .footer{margin-top:24px;color:#98a7ff80;font-size:12px}
-    .badge{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:#0b132e;}
     .players{display:flex;flex-wrap:wrap;gap:8px}
     .player{background:#0e1737;border:1px solid rgba(255,255,255,.1);padding:8px 10px;border-radius:999px}
-    .danger{background:var(--bad);color:#220b0b}
-    .good{background:var(--good);color:#05160f}
     .hr{height:1px;background:rgba(255,255,255,.08);margin:14px 0}
     .timer{font-variant-numeric:tabular-nums;font-weight:800}
-    .color{width:120px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:#0f1530}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1><img class="logo" id="logo" src="" alt="logo"/> QuizRoom 🎯</h1>
-    <p class="sub">Tạo phòng – Mời bạn bè – Chơi quiz theo thời gian thực (Firebase). Triển khai dễ dàng trên Vercel.</p>
+    <h1><img class="logo" id="logo" src="" alt="logo"/> MemoryRoom 🎴</h1>
+    <p class="sub">Lật thẻ theo phòng – đúng cặp thì thẻ biến mất & cộng điểm. Dùng Firebase Realtime Database, triển khai dễ trên Vercel.</p>
 
     <div class="grid">
-      <!-- HOST / CONTROL PANEL -->
-      <div class="card" id="hostPanel">
+      <!-- HOST PANEL -->
+      <div class="card">
         <div class="row" style="justify-content:space-between">
           <strong>Bảng điều khiển (Host)</strong>
-          <span class="pill">Trạng thái: <span id="status">Chưa kết nối</span></span>
+          <span class="pill">Trạng thái: <span id="status">Chưa vào phòng</span></span>
         </div>
         <div class="hr"></div>
-
-        <!-- Room + Branding -->
         <div class="row">
-          <input id="roomId" placeholder="Nhập mã phòng (ví dụ: ECO101)" />
-          <button id="createRoomBtn">Tạo / Vào phòng</button>
-          <button class="ghost" id="copyLinkBtn">Sao chép link phòng</button>
+          <input id="roomId" placeholder="Mã phòng (ví dụ: ECO101)"/>
+          <button id="enterRoom">Vào phòng</button>
+          <button class="ghost" id="copyLink">Sao chép link</button>
         </div>
         <div class="row">
           <input id="logoInput" placeholder="Dán URL logo lớp (PNG/JPG)"/>
           <label class="muted">Màu chủ đạo:</label>
-          <input id="colorInput" type="color" class="color" value="#7aa2ff"/>
+          <input id="colorInput" type="color" value="#7aa2ff"/>
           <button class="ghost" id="applyBrand">Áp dụng giao diện</button>
         </div>
 
         <div class="hr"></div>
-
-        <!-- Question composer -->
         <div class="row">
-          <textarea id="questionText" rows="3" placeholder="Nhập câu hỏi…"></textarea>
-        </div>
-        <div class="row">
-          <div style="flex:1"><input id="a1" placeholder="Đáp án A"/></div>
-          <div style="flex:1"><input id="a2" placeholder="Đáp án B"/></div>
-          <div style="flex:1"><input id="a3" placeholder="Đáp án C"/></div>
-          <div style="flex:1"><input id="a4" placeholder="Đáp án D"/></div>
-          <div style="width:160px">
-            <select id="correct">
-              <option value="0">Đáp án đúng: A</option>
-              <option value="1">Đáp án đúng: B</option>
-              <option value="2">Đáp án đúng: C</option>
-              <option value="3">Đáp án đúng: D</option>
-            </select>
-          </div>
-        </div>
-        <div class="row">
-          <label>Thời gian (giây):</label>
-          <input id="duration" type="number" value="20" min="5" />
-          <label>Điểm đúng:</label>
-          <input id="ptsRight" type="number" value="10" step="1" />
-          <label>Điểm sai (có thể âm):</label>
-          <input id="ptsWrong" type="number" value="0" step="1" />
-          <label>Bonus nhanh tay (Top N):</label>
-          <input id="bonusTopN" type="number" value="0" step="1" />
-          <label>Điểm bonus:</label>
-          <input id="bonusPts" type="number" value="0" step="1" />
-        </div>
-        <div class="row">
-          <button id="pushQuestion">Gửi câu hỏi</button>
-          <button class="ghost" id="revealBtn">Hiện kết quả</button>
-          <button class="ghost danger" id="resetAnswers">Xoá câu trả lời</button>
           <input type="file" id="fileInput" accept=".csv,.json"/>
-          <button class="ghost" id="loadFileBtn">Tải câu hỏi CSV/JSON</button>
+          <button id="loadPairs" class="ghost">Tải cặp Q/A</button>
+          <label>Điểm mỗi cặp:</label><input id="memPts" type="number" value="5"/>
+          <label>Cột:</label><input id="memCols" type="number" value="4" min="2" max="8"/>
+          <button id="startRound">Bắt đầu ván</button>
         </div>
-
         <div id="queue" class="list"></div>
 
         <div class="hr"></div>
         <div>
-          <div class="row"><strong>Người chơi trong phòng</strong> <span class="badge" id="playerCount">0</span>
-            <button class="ghost" id="exportCsv">Xuất bảng điểm CSV</button>
+          <div class="row"><strong>Người chơi</strong> <span class="pill" id="playerCount">0</span>
+            <button class="ghost" id="exportCsv">Xuất điểm CSV</button>
           </div>
           <div class="players" id="players"></div>
         </div>
@@ -128,9 +82,9 @@
         </div>
       </div>
 
-      <!-- PLAYER / JOIN PANEL -->
+      <!-- PLAYER PANEL -->
       <div class="card">
-        <strong>Tham gia chơi (Player)</strong>
+        <strong>Người chơi – Lật thẻ</strong>
         <div class="hr"></div>
         <div class="row">
           <input id="joinRoom" placeholder="Mã phòng" />
@@ -142,27 +96,24 @@
           <div class="row" style="justify-content:space-between">
             <span class="pill">Phòng: <span id="roomBadge">-</span></span>
             <span class="pill">Bạn: <span id="me">-</span></span>
-            <span class="pill">⏳ Còn: <span id="countdown" class="timer">--</span></span>
+            <span class="pill">Còn cặp: <span id="memLeft">--</span></span>
           </div>
           <div class="hr"></div>
-          <div id="liveQuestion" class="q">Chờ host gửi câu hỏi…</div>
-          <div class="answers" id="answerBtns" style="display:none"></div>
-          <div class="center muted" id="hint"></div>
+          <div id="board" style="display:grid;gap:10px"></div>
+          <div class="muted center" id="hint"></div>
         </div>
       </div>
     </div>
 
-    <div class="footer">🔥 Hướng dẫn cấu hình Firebase nằm cuối file. Mã nguồn: 1 file HTML – kéo thả lên Vercel là chạy.</div>
+    <div class="hr"></div>
+    <div class="muted">CSV mẫu: <code>question,answer</code> mỗi dòng là một cặp. JSON: <code>[{q,a},...]</code> hoặc <code>{pairs:[...]}</code>.</div>
   </div>
 
-  <!-- Firebase v9 (CDN) -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-    import { getDatabase, ref, set, onValue, update, push, get, child, remove } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+    import { getDatabase, ref, set, onValue, update, get, remove } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
 
-    // =====================
-    // 1) CẤU HÌNH FIREBASE (THAY GIÁ TRỊ BÊN DƯỚI)
-    // =====================
+    // ===== 1) CẤU HÌNH FIREBASE – THAY GIÁ TRỊ TƯƠNG ỨNG =====
     const firebaseConfig = {
   apiKey: "AIzaSyDA3fp5A2cGB63kMA8TlEJ2x49rr4DiYbA",
   authDomain: "game-75e2a.firebaseapp.com",
@@ -177,418 +128,122 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Helpers
-    const $ = (id) => document.getElementById(id);
-    const statusEl = $("status");
-    const playersEl = $("players");
-    const scoreboardEl = $("scoreboard");
-    const countdownEl = $("countdown");
+    const $ = (id)=>document.getElementById(id);
+    let joinedRoomId=null, myId=null;
 
-    let myPlayerId = null;
-    let joinedRoomId = null;
-    let timerInterval = null;
-
-    const fmt = (s)=> String(Math.max(0, Math.floor(s))).padStart(2,'0');
-    function renderCountdown(msLeft){
-      if(!msLeft || msLeft<0){ countdownEl.textContent='00'; return; }
-      const sec = Math.ceil(msLeft/1000);
-      countdownEl.textContent = fmt(sec);
-    }
-
-    // =====================
-    // 2) HOST: Tạo/Vào phòng + UI
-    // =====================
-    $("createRoomBtn").onclick = async () => {
-      const roomId = $("roomId").value.trim().toUpperCase();
-      if(!roomId) return alert("Nhập mã phòng");
-      const base = ref(db, `rooms/${roomId}`);
-      const now = Date.now();
-      await update(base, { createdAt: now });
-      statusEl.textContent = `Đã vào phòng ${roomId}`;
-
-      // Lắng nghe danh sách người chơi
-      onValue(ref(db, `rooms/${roomId}/players`), (snap) => {
-        const players = snap.val() || {};
-        playersEl.innerHTML = '';
-        const ids = Object.keys(players);
-        $("playerCount").textContent = ids.length;
-        ids.forEach(id => {
-          const p = players[id];
-          const chip = document.createElement('div');
-          chip.className = 'player';
-          chip.textContent = `${p.name} • ${p.score||0}`;
-          playersEl.appendChild(chip);
-        })
-      });
-
-      // Lắng nghe bảng điểm
-      onValue(ref(db, `rooms/${roomId}/scores`), (snap) => {
-        const scores = snap.val() || {};
-        const arr = Object.values(scores).sort((a,b)=> (b.score||0)-(a.score||0));
-        scoreboardEl.innerHTML = '';
-        arr.forEach((s, idx) => {
-          const item = document.createElement('div');
-          item.className='q';
-          item.innerHTML = `<div class="row" style="justify-content:space-between"><div><strong>${idx+1}. ${s.name}</strong></div><div class="score">${s.score||0} điểm</div></div>`;
-          scoreboardEl.appendChild(item);
-        })
-      });
-
-      // Copy link join
-      $("copyLinkBtn").onclick = async () => {
-        const url = `${location.origin}${location.pathname}?room=${roomId}`;
-        await navigator.clipboard.writeText(url);
-        alert("Đã sao chép link: " + url);
-      }
-
-      // Áp dụng branding
-      $("applyBrand").onclick = () => {
-        const url = $("logoInput").value.trim();
-        if(url) $("logo").src = url; else $("logo").src='';
-        const col = $("colorInput").value; if(col){ document.documentElement.style.setProperty('--accent', col); }
-      }
-
-      // Gửi câu hỏi tới phòng
-      $("pushQuestion").onclick = async () => { await pushLiveQuestion(roomId); }
-
-      // Hiện kết quả thủ công
-      $("revealBtn").onclick = async () => { await revealAndScore(roomId); }
-
-      // Xoá câu trả lời
-      $("resetAnswers").onclick = async () => { await remove(ref(db, `rooms/${roomId}/answers`)); }
-
-      // Tải câu hỏi từ CSV/JSON
-      $("loadFileBtn").onclick = () => $("fileInput").click();
-      $("fileInput").onchange = async (e) => { await handleFile(e.target.files[0], roomId); };
-
-      // Tự động reveal khi hết giờ
-      onValue(ref(db, `rooms/${roomId}/live`), async (snap) => {
-        const live = snap.val();
-        if(!live) return;
-        if(live.tsEnd && Date.now()>live.tsEnd && !live.reveal){ await revealAndScore(roomId); }
-      });
+    // ===== 2) HOST: vào phòng, tải cặp, bắt đầu ván =====
+    $("enterRoom").onclick = async ()=>{
+      const room = $("roomId").value.trim().toUpperCase(); if(!room) return alert('Nhập mã phòng');
+      await update(ref(db, `rooms/${room}`), { createdAt: Date.now() });
+      $("status").textContent = `Đã vào phòng ${room}`;
+      bindPlayers(room); bindScores(room);
+      $("copyLink").onclick = async ()=>{ const url = `${location.origin}${location.pathname}?room=${room}`; await navigator.clipboard.writeText(url); alert('Đã sao chép: '+url); };
     };
 
-    async function pushLiveQuestion(roomId, item){
-      const q = (item && item.q) ? item.q : $("questionText").value.trim();
-      const a = (item && item.a) ? item.a : [$("a1").value, $("a2").value, $("a3").value, $("a4").value].map(x=>x||'');
-      const correct = (item && typeof item.correct !== 'undefined') ? item.correct : parseInt($("correct").value,10);
-      const duration = Number((item && item.duration != null) ? item.duration : ($("duration").value || 20));
-      const ptsRight = Number((item && item.ptsRight != null) ? item.ptsRight : ($("ptsRight").value || 10));
-      const ptsWrong = Number((item && item.ptsWrong != null) ? item.ptsWrong : ($("ptsWrong").value || 0));
-      const bonusTopN = Number((item && item.bonusTopN != null) ? item.bonusTopN : ($("bonusTopN").value || 0));
-      const bonusPts = Number((item && item.bonusPts != null) ? item.bonusPts : ($("bonusPts").value || 0));
-      if(!q || a.filter(Boolean).length < 2) return alert("Nhập câu hỏi và tối thiểu 2 đáp án");
-      const ts = Date.now();
-      await update(ref(db, `rooms/${roomId}/live`), { q, a, correct, reveal:false, ts, duration, tsEnd: ts + duration*1000, ptsRight, ptsWrong, bonusTopN, bonusPts });
-      await remove(ref(db, `rooms/${roomId}/answers`));
-    }
-
-    async function revealAndScore(roomId){
-      const live = (await get(ref(db, `rooms/${roomId}/live`))).val();
-      if(!live) return;
-      await update(ref(db, `rooms/${roomId}/live`), { reveal: true });
-      const ansSnap = await get(ref(db, `rooms/${roomId}/answers`));
-      const answers = ansSnap.val() || {};
-
-      // Tính bonus nhanh tay: sort những người trả lời đúng theo thời gian
-      const correctList = Object.entries(answers)
-        .filter(([,v]) => v.choice === live.correct)
-        .sort(([,a],[,b]) => (a.at||0) - (b.at||0))
-        .map(([pid])=>pid);
-
-      for(const pid of Object.keys(answers)){
-        const v = answers[pid];
-        const isCorrect = v.choice === live.correct;
-        let delta = isCorrect ? (live.ptsRight||10) : (live.ptsWrong||0);
-        if(isCorrect && (live.bonusTopN||0)>0){
-          const rank = correctList.indexOf(pid);
-          if(rank>-1 && rank < (live.bonusTopN||0)) delta += (live.bonusPts||0);
-        }
-        const p = (await get(ref(db, `rooms/${roomId}/players/${pid}`))).val();
-        const newScore = (p?.score||0) + delta;
-        await update(ref(db, `rooms/${roomId}/players/${pid}`), { score: newScore });
-        await update(ref(db, `rooms/${roomId}/scores/${pid}`), { name:p.name, score:newScore });
-      }
-    }
-
-    // =====================
-    // 3) PLAYER: Tham gia & trả lời + đếm ngược & khoá khi hết giờ
-    // =====================
-    function useQueryParam(name){ const url = new URL(location.href); return url.searchParams.get(name); }
-    const roomFromUrl = useQueryParam('room'); if(roomFromUrl){ $("joinRoom").value = roomFromUrl; }
-
-    $("joinBtn").onclick = async () => {
-      const roomId = $("joinRoom").value.trim().toUpperCase();
-      const name = $("nickname").value.trim();
-      if(!roomId || !name) return alert("Nhập mã phòng và tên");
-      joinedRoomId = roomId;
-      myPlayerId = 'p_'+Math.random().toString(36).slice(2,8);
-      await update(ref(db, `rooms/${roomId}/players/${myPlayerId}`), { name, score:0, joinedAt: Date.now() });
-      await update(ref(db, `rooms/${roomId}/scores/${myPlayerId}`), { name, score:0 });
-      $("playerArea").style.display='block';
-      $("roomBadge").textContent = roomId; $("me").textContent = name;
-
-      onValue(ref(db, `rooms/${roomId}/live`), (snap) => {
-        const live = snap.val();
-        const liveQ = $("liveQuestion");
-        const ansBox = $("answerBtns");
-        const hint = $("hint");
-        if(timerInterval) { clearInterval(timerInterval); timerInterval=null; }
-        if(!live){ liveQ.textContent='Chờ host gửi câu hỏi…'; ansBox.style.display='none'; hint.textContent=''; renderCountdown(0); return; }
-        liveQ.innerHTML = `<strong>Câu hỏi:</strong> ${live.q}`;
-        ansBox.innerHTML='';
-        (live.a||[]).forEach((text, idx)=>{
-          const btn = document.createElement('button');
-          btn.className='ans'; btn.dataset.idx=idx;
-          btn.textContent = `${String.fromCharCode(65+idx)}. ${text}`;
-          btn.onclick = async () => {
-            if(btn.disabled) return;
-            const already = await get(ref(db, `rooms/${roomId}/answers/${myPlayerId}`));
-            if(already.exists()){ hint.textContent = 'Bạn đã trả lời. Chờ công bố kết quả…'; return; }
-            // Khoá nếu hết giờ
-            if(live.tsEnd && Date.now()>live.tsEnd){ hint.textContent='Hết giờ!'; disableAll(); return; }
-            await update(ref(db, `rooms/${roomId}/answers/${myPlayerId}`), { choice: idx, at: Date.now(), name });
-            hint.textContent = 'Đã ghi nhận câu trả lời!';
-          };
-          ansBox.appendChild(btn);
-        });
-        ansBox.style.display='grid';
-        hint.textContent = 'Chọn đáp án của bạn.';
-
-        function disableAll(){ Array.from(ansBox.children).forEach(el=> el.disabled = true ); }
-
-        // Đếm ngược
-        const tick = ()=>{
-          const left = (live.tsEnd||0) - Date.now();
-          renderCountdown(left);
-          if(left<=0){ disableAll(); if(!live.reveal) hint.textContent='Hết giờ! Chờ kết quả…'; clearInterval(timerInterval); timerInterval=null; }
-        };
-        tick(); timerInterval = setInterval(tick, 200);
-
-        // Khi host công bố kết quả
-        if(live.reveal){
-          Array.from(ansBox.children).forEach((el, idx)=>{ el.classList.remove('correct','wrong'); if(idx===live.correct) el.classList.add('correct'); else el.classList.add('wrong'); el.disabled=true; });
-          hint.textContent = 'Kết quả đã công bố!';
-          renderCountdown(0);
-        }
+    function bindPlayers(room){
+      onValue(ref(db, `rooms/${room}/players`), (snap)=>{
+        const players = snap.val()||{}; const ids = Object.keys(players);
+        $("playerCount").textContent = ids.length; $("players").innerHTML='';
+        ids.forEach(id=>{ const p=players[id]; const chip=document.createElement('div'); chip.className='player'; chip.textContent=`${p.name} • ${p.score||0}`; $("players").appendChild(chip); });
       });
-
-      alert(`Đã tham gia phòng ${roomId}. Hãy chờ host!`);
-    };
-
-    // Export CSV điểm (đã sửa lỗi xuống dòng & escape)
-    $("exportCsv").onclick = async () => {
-      const roomId = $("roomId").value.trim().toUpperCase(); if(!roomId) return alert('Nhập mã phòng');
-      const scores = (await get(ref(db, `rooms/${roomId}/scores`))).val() || {};
-      const rows = [['name','score']];
-      Object.values(scores).forEach(s=> rows.push([s.name, s.score||0]));
-      const csv = rows.map(r => r.map(x => `"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
-      const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8;'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `scoreboard_${Date.now()}.csv`; a.click(); URL.revokeObjectURL(url);
     }
-
-    // Nạp file CSV/JSON thành queue câu hỏi
-    async function handleFile(file, roomId){
-      if(!file) return;
-      const text = await file.text();
-      let items = [];
-      if(file.name.endsWith('.json')){
-        const data = JSON.parse(text);
-        items = Array.isArray(data) ? data : (data.questions||[]);
-      } else {
-        // CSV header: question,a,b,c,d,correct(0-3),duration(optional),ptsRight,ptsWrong,bonusTopN,bonusPts
-        const lines = text.split(/\r?\n/).filter(Boolean); // fixed regex
-        const hasHeader = lines[0].toLowerCase().includes('question');
-        const start = hasHeader ? 1 : 0;
-        for(let i=start;i<lines.length;i++){
-          const cols = lines[i].split(',');
-          if(cols.length<6) continue;
-          items.push({
-            q: cols[0], a:[cols[1],cols[2],cols[3],cols[4]], correct:Number(cols[5]||0),
-            duration:Number(cols[6]||$("duration").value||20),
-            ptsRight:Number(cols[7]||$("ptsRight").value||10),
-            ptsWrong:Number(cols[8]||$("ptsWrong").value||0),
-            bonusTopN:Number(cols[9]||0), bonusPts:Number(cols[10]||0)
-          });
-        }
-      }
-      renderQueue(items, roomId);
-    }
-
-    function renderQueue(items, roomId){
-      const box = $("queue"); box.innerHTML='';
-      if(!items.length){ box.innerHTML = '<div class="muted">(Chưa có danh sách câu hỏi tải lên)</div>'; return; }
-      items.forEach((it, idx)=>{
-        const el = document.createElement('div'); el.className='q';
-        el.innerHTML = `<div class="row" style="justify-content:space-between"><div><strong>${idx+1}. ${it.q}</strong><div class="muted">Đúng: ${String.fromCharCode(65+(it.correct||0))} • ${it.duration||20}s • +${it.ptsRight||10} / ${it.ptsWrong||0} • Bonus: top ${it.bonusTopN||0} +${it.bonusPts||0}</div></div><div><button class="ghost" id="send_${idx}">Gửi câu này</button></div></div>`;
-        box.appendChild(el);
-        el.querySelector(`#send_${idx}`).onclick = async ()=>{ await pushLiveQuestion(roomId, it); };
+    function bindScores(room){
+      onValue(ref(db, `rooms/${room}/scores`), (snap)=>{
+        const scores = snap.val()||{}; const arr=Object.values(scores).sort((a,b)=>(b.score||0)-(a.score||0));
+        $("scoreboard").innerHTML=''; arr.forEach((s,i)=>{ const div=document.createElement('div'); div.className='q'; div.innerHTML=`<div class='row' style='justify-content:space-between'><div><strong>${i+1}. ${s.name}</strong></div><div>${s.score||0} điểm</div></div>`; $("scoreboard").appendChild(div); });
       });
     }
 
-    // Cảnh báo rời trang
-    window.addEventListener('beforeunload', (e)=>{ if(joinedRoomId && myPlayerId){ update(ref(db, `rooms/${joinedRoomId}/players/${myPlayerId}`), { leftAt: Date.now() }); } });
-  </script>
+    $("applyBrand").onclick = ()=>{ const url=$("logoInput").value.trim(); if(url) $("logo").src=url; const col=$("colorInput").value; if(col) document.documentElement.style.setProperty('--accent', col); };
 
- 
-  <!-- ================= MEMORY (FLIP CARDS) MODE UI ================= -->
-  <div class="wrap" style="padding-top:0">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <strong>🎴 Chế độ Lật thẻ (Memory) – Beta</strong>
-        <span class="muted">Tạo từ CSV cặp <code>question,answer</code>. Cả lớp cùng lật; đúng thì biến mất, sai sẽ úp lại.</span>
-      </div>
-      <div class="hr"></div>
-      <div class="row">
-        <input id="memRoom" placeholder="Mã phòng (dùng chung với phòng quiz cũng được)"/>
-        <button id="memEnter">Vào phòng Memory (Host)</button>
-        <input type="file" id="memFile" accept=".csv,.json"/>
-        <button class="ghost" id="memLoad">Tải cặp Q/A</button>
-        <button id="memStart">Bắt đầu ván</button>
-        <label>Điểm mỗi cặp:</label><input id="memPts" type="number" value="5"/>
-        <label>Kích thước lưới:</label><input id="memCols" type="number" value="4" min="2" max="8"/>
-      </div>
-      <div id="memQueue" class="list"></div>
-    </div>
-
-    <div class="card">
-      <strong>Người chơi – Lật thẻ</strong>
-      <div class="hr"></div>
-      <div class="row">
-        <input id="memJoinRoom" placeholder="Mã phòng"/>
-        <input id="memNick" placeholder="Tên của bạn"/>
-        <button id="memJoin">Tham gia Memory</button>
-      </div>
-      <div class="space"></div>
-      <div id="memArea" style="display:none">
-        <div class="row" style="justify-content:space-between">
-          <span class="pill">Phòng: <span id="memBadge">-</span></span>
-          <span class="pill">Bạn: <span id="memMe">-</span></span>
-          <span class="pill">Còn cặp: <span id="memLeft">--</span></span>
-        </div>
-        <div class="hr"></div>
-        <div id="memBoard" style="display:grid;gap:10px"></div>
-        <div class="center muted" id="memHint"></div>
-      </div>
-    </div>
-  </div>
-
-  <script type="module">
-    import { getDatabase, ref, set, onValue, update, get, remove } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
-    const db2 = getDatabase();
-    const $$ = (id)=>document.getElementById(id);
-
-    // ---------- HOST: load Q/A pairs & start round ----------
-    $$("memLoad").onclick = ()=> $$("memFile").click();
-    $$("memEnter").onclick = async ()=>{
-      const room = $$("memRoom").value.trim().toUpperCase();
-      if(!room) return alert('Nhập mã phòng');
-      await update(ref(db2, `rooms/${room}/memory`), { ready:true });
-      alert('Đã vào phòng Memory: '+room);
+    $("loadPairs").onclick = ()=> $("fileInput").click();
+    let loadedPairs=[];
+    $("fileInput").onchange = async (e)=>{
+      const f=e.target.files[0]; if(!f) return; const text=await f.text(); loadedPairs=[];
+      if(f.name.endsWith('.json')){ const j=JSON.parse(text); loadedPairs = Array.isArray(j)? j : (j.pairs||[]); }
+      else { const lines=text.split(/\r?\n/).filter(Boolean); const start = lines[0].toLowerCase().includes('question')?1:0; for(let i=start;i<lines.length;i++){ const [q,a] = lines[i].split(','); if(q && a) loadedPairs.push({q,a}); } }
+      renderQueue();
     };
-    $$("memFile").onchange = async (e)=>{
-      const f = e.target.files[0]; if(!f) return;
-      const text = await f.text();
-      let pairs = [];
-      if(f.name.endsWith('.json')){
-        const j = JSON.parse(text); pairs = Array.isArray(j)?j:(j.pairs||[]);
-      }else{
-        const lines = text.split(/\r?\n/).filter(Boolean);
-        const start = lines[0].toLowerCase().includes('question')?1:0;
-        for(let i=start;i<lines.length;i++){
-          const [q,a] = lines[i].split(','); if(q && a) pairs.push({q, a});
-        }
-      }
-      renderMemQueue(pairs);
+    function renderQueue(){ $("queue").innerHTML = loadedPairs.length? `<div class='q'>Đã nạp <strong>${loadedPairs.length}</strong> cặp. Bấm "Bắt đầu ván" để tạo bàn.</div>` : `<div class='muted'>(Chưa có cặp)</div>`; }
+
+    $("startRound").onclick = async ()=>{
+      const room=$("roomId").value.trim().toUpperCase(); if(!room) return alert('Nhập mã phòng');
+      if(!loadedPairs.length) return alert('Hãy tải CSV/JSON cặp Q/A');
+      const cols = Math.max(2, Math.min(8, Number($("memCols").value||4)));
+      const pts = Number($("memPts").value||5);
+      const deck=[]; let cid=0;
+      loadedPairs.forEach((p,idx)=>{ deck.push({id:cid++, pair:idx, text:p.q}); deck.push({id:cid++, pair:idx, text:p.a}); });
+      for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; }
+      const state={ cols, pts, deck: deck.map(c=>({id:c.id,pair:c.pair,text:c.text,removed:false})), flipped:[], lock:false };
+      await update(ref(db, `rooms/${room}/memory/state`), state);
+      await update(ref(db, `rooms/${room}/memory/meta`), { left: loadedPairs.length });
+      alert('Đã tạo bàn '+deck.length+' thẻ');
     };
 
-    function renderMemQueue(pairs){
-      const box=$$("memQueue"); box.innerHTML='';
-      if(!pairs.length){ box.innerHTML='<div class="muted">(Chưa có cặp Q/A)</div>'; return; }
-      box.innerHTML = `<div class="q">Đã nạp <strong>${pairs.length}</strong> cặp. Bấm "Bắt đầu ván" để tạo bàn.</div>`;
-      $$("memStart").onclick = async ()=>{
-        const room = $$("memRoom").value.trim().toUpperCase(); if(!room) return alert('Nhập mã phòng');
-        const cols = Math.max(2, Math.min(8, Number($$("memCols").value||4)));
-        const pts = Number($$("memPts").value||5);
-        const deck=[]; let id=0;
-        pairs.forEach((p,idx)=>{
-          deck.push({id:id++, pair:idx, text:p.q});
-          deck.push({id:id++, pair:idx, text:p.a});
-        });
-        // xáo bài
-        for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; }
-        const state={ cols, pts, deck: deck.map(c=>({id:c.id, pair:c.pair, text:c.text, removed:false})), flipped:[], lock:false };
-        await update(ref(db2, `rooms/${room}/memory/state`), state);
-        await update(ref(db2, `rooms/${room}/memory/meta`), { left: pairs.length });
-        alert('Đã tạo bàn '+deck.length+' thẻ');
-      };
-    }
+    // ===== 3) PLAYER: tham gia & lật =====
+    function qp(name){ const u=new URL(location.href); return u.searchParams.get(name); }
+    const roomFromUrl = qp('room'); if(roomFromUrl) $("joinRoom").value = roomFromUrl;
 
-    // ---------- PLAYER: join & play ----------
-    let memRoom=null, memPlayer=null;
-    $$("memJoin").onclick = async ()=>{
-      const r=$$("memJoinRoom").value.trim().toUpperCase();
-      const n=$$("memNick").value.trim();
-      if(!r||!n) return alert('Nhập mã phòng & tên');
-      memRoom=r; memPlayer='m_'+Math.random().toString(36).slice(2,8);
-      await update(ref(db2, `rooms/${r}/players/${memPlayer}`), {name:n, score:0});
-      $$("memArea").style.display='block'; $$("memBadge").textContent=r; $$("memMe").textContent=n;
-      bindMemBoard();
+    $("joinBtn").onclick = async ()=>{
+      const room=$("joinRoom").value.trim().toUpperCase(); const name=$("nickname").value.trim();
+      if(!room||!name) return alert('Nhập mã phòng & tên'); joinedRoomId=room; myId='p_'+Math.random().toString(36).slice(2,8);
+      await update(ref(db, `rooms/${room}/players/${myId}`), {name, score:0, joinedAt: Date.now()});
+      await update(ref(db, `rooms/${room}/scores/${myId}`), {name, score:0});
+      $("playerArea").style.display='block'; $("roomBadge").textContent=room; $("me").textContent=name; bindBoard();
     };
 
-    function bindMemBoard(){
-      onValue(ref(db2, `rooms/${memRoom}/memory/state`), async (snap)=>{
-        const st = snap.val(); if(!st){ $$("memBoard").innerHTML='<div class="muted">Chờ host bắt đầu ván…</div>'; return; }
-        const board=$$("memBoard"); board.style.gridTemplateColumns=`repeat(${st.cols||4}, minmax(0,1fr))`;
+    function bindBoard(){
+      onValue(ref(db, `rooms/${joinedRoomId}/memory/state`), async (snap)=>{
+        const st=snap.val(); const board=$("board"); if(!st){ board.innerHTML='<div class="muted">Chờ host bắt đầu ván…</div>'; return; }
+        board.style.gridTemplateColumns = `repeat(${st.cols||4}, minmax(0,1fr))`;
+        const meta=(await get(ref(db, `rooms/${joinedRoomId}/memory/meta`))).val()||{left:'--'}; $("memLeft").textContent=meta.left;
         board.innerHTML='';
-        const metaSnap = await get(ref(db2, `rooms/${memRoom}/memory/meta`));
-        const meta = metaSnap.val()||{left:'--'}; $$("memLeft").textContent=meta.left;
-        st.deck.forEach((card, idx)=>{
+        st.deck.forEach(card=>{
           const btn=document.createElement('button'); btn.className='ans'; btn.style.height='72px';
+          const flipped=(st.flipped||[]).includes(card.id);
           btn.disabled=card.removed || st.lock;
-          const flipped = (st.flipped||[]).includes(card.id);
-          btn.textContent = (flipped || card.removed) ? card.text : '❓';
-          if(card.removed){ btn.style.visibility='hidden'; }
+          btn.textContent=(flipped||card.removed)? card.text : '❓';
+          if(card.removed) btn.style.visibility='hidden';
           btn.onclick = ()=> flipCard(card.id);
           board.appendChild(btn);
         });
-        $$("memHint").textContent = st.lock? 'Đang kiểm tra cặp…' : 'Chọn 2 thẻ để lật';
+        $("hint").textContent = st.lock? 'Đang kiểm tra cặp…' : 'Chọn 2 thẻ để lật';
       });
     }
 
     async function flipCard(cardId){
-      const base = ref(db2, `rooms/${memRoom}/memory/state`);
+      const base = ref(db, `rooms/${joinedRoomId}/memory/state`);
       const st = (await get(base)).val(); if(!st || st.lock) return;
       const card = st.deck.find(c=>c.id===cardId); if(!card || card.removed) return;
-      if((st.flipped||[]).includes(cardId)) return; // đã lật
-      const flipped = [...(st.flipped||[]), cardId];
-      await update(base, { flipped });
+      if((st.flipped||[]).includes(cardId)) return;
+      const flipped=[...(st.flipped||[]), cardId]; await update(base,{flipped});
       if(flipped.length===2){
-        // tạm khoá để kiểm tra
-        await update(base, { lock:true });
-        const [c1,c2] = flipped.map(id=> st.deck.find(c=>c.id===id));
+        await update(base,{lock:true});
+        const [c1,c2]=flipped.map(id=> st.deck.find(c=>c.id===id));
         const match = c1.pair===c2.pair && c1.id!==c2.id;
         if(match){
-          st.deck = st.deck.map(c=> (c.id===c1.id||c.id===c2.id)? {...c, removed:true}:c);
-          await update(base, { deck: st.deck, flipped: [], lock:false });
-          // trừ cặp còn lại
-          const metaRef = ref(db2, `rooms/${memRoom}/memory/meta`);
-          const m = (await get(metaRef)).val()||{left:0};
-          await update(metaRef, { left: Math.max(0,(m.left||0)-1) });
-          // cộng điểm cho người lật thứ 2
-          const roomScoresRef = ref(db2, `rooms/${memRoom}/scores/${memPlayer}`);
-          const p = (await get(roomScoresRef)).val()||{name:'',score:0};
-          const pts = (st.pts||5);
-          await update(roomScoresRef, { name: (p.name||$$("memMe").textContent), score: (p.score||0)+pts });
-          await update(ref(db2, `rooms/${memRoom}/players/${memPlayer}`), { score: (p.score||0)+pts });
+          st.deck = st.deck.map(c=> (c.id===c1.id||c.id===c2.id)? {...c,removed:true}:c);
+          await update(base,{deck:st.deck, flipped:[], lock:false});
+          const metaRef=ref(db, `rooms/${joinedRoomId}/memory/meta`);
+          const m=(await get(metaRef)).val()||{left:0}; await update(metaRef,{left: Math.max(0,(m.left||0)-1)});
+          const sRef=ref(db, `rooms/${joinedRoomId}/scores/${myId}`); const p=(await get(sRef)).val()||{name:'',score:0};
+          const pts=(st.pts||5); await update(sRef,{name:(p.name||$("me").textContent), score:(p.score||0)+pts});
+          await update(ref(db, `rooms/${joinedRoomId}/players/${myId}`), {score:(p.score||0)+pts});
         }else{
-          // sai: úp lại sau 1s
-          setTimeout(async ()=>{ await update(base, { flipped: [], lock:false }); }, 1000);
+          setTimeout(async()=>{ await update(base,{flipped:[], lock:false}); }, 900);
         }
       }
     }
+
+    // ===== 4) Xuất CSV điểm =====
+    $("exportCsv").onclick = async ()=>{
+      const room=$("roomId").value.trim().toUpperCase(); if(!room) return alert('Nhập mã phòng');
+      const scores=(await get(ref(db, `rooms/${room}/scores`))).val()||{}; const rows=[["name","score"]];
+      Object.values(scores).forEach(s=> rows.push([s.name, s.score||0]));
+      const csv = rows.map(r=> r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=`scoreboard_${Date.now()}.csv`; a.click(); URL.revokeObjectURL(url);
+    };
   </script>
 
 </body>
